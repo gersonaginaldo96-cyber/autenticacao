@@ -59,7 +59,8 @@ def verificar_usuario(nome: str) -> bool:
     conn.close()
 
     return resultado is not None
-# redefinicao de senha
+# redefinicao de senha colocar um limite de tentativas (rate limite)
+
 def redefinir_senha(nome: str, nova_senha: str) -> bool:
     nome_normalizado = nome.strip().casefold()
 
