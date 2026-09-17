@@ -27,6 +27,7 @@ python main.py
 python -m pytest -q
 ```
 
+
 ## Observações
 - O arquivo de banco `usuarios.db` fica local e pode ser ignorado pelo Git.
 - Arquivos temporários e caches também são ignorados pelo `.gitignore`.

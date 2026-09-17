@@ -9,8 +9,22 @@ def conectar_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL UNIQUE,
             senha TEXT NOT NULL,
+            pergunta_de_validacao TEXT,
+            resposta_de_validacao TEXT,
             data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             ultima_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        '''
+        
+    )
+    conn.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS redefinir_pin(
+            nome TEXT PRIMARY KEY,
+            tempo_hash TEXT,
+            criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            tentativas integer
+           
         )
         '''
     )

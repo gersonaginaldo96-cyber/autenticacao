@@ -1,9 +1,11 @@
 from hashlib import sha256
+import random
+from datetime import datetime
 
 
 from models.database import conectar_db
 
-
+# gerar o hash usando o bcyrpt junto
 def gerar_hash(senha: str) -> str:
     return sha256(senha.encode('utf-8')).hexdigest()
 
@@ -59,7 +61,34 @@ def verificar_usuario(nome: str) -> bool:
     conn.close()
 
     return resultado is not None
-# redefinicao de senha colocar um limite de tentativas (rate limite)
+# redefinicao de senha colocar um limite de tentativas (rate limite e bcrypt)
+def gerar_senha_temp():
+    return str(random.randint(10000,999999))# 6 digitos
+
+# criar questoes de validacao para poder passar para redifinicao
+def pergunta_de_validacao(nome:str, pergunta:str, resposta: str) -> bool:
+    nome_normalizado = nome.strip().casefold()
+    pergunta_normalizada = pergunta.strip().casefold()
+    resposta_normalizada = resposta.strip().casefold()
+
+    conn = conectar_db()
+    cursor = conn.cursor()
+
+    cursor.execute ('SELECT pergunta_de_validacao, resposta_de_validacao  FROM usuarios WHERE nome = ?', (nome_normalizado,))
+    resultado = cursor.fetchone()
+    conn.close()
+
+    if not resultado:
+        return False
+    pergunta_salva, resposta_salva = resultado
+    return (pergunta_salva.strip().casefold() == pergunta_normalizada and resposta_salva.strip().casefold() == resposta_normalizada)
+
+# redefinir senha atravez da validacao das informacoes
+def redefinir_senha_com_validacao(nome: str, pergunta: str, resposta: str, nova_senha: str) -> bool:
+    if not pergunta_de_validacao(nome, pergunta, resposta):
+        print("pergunta ou respostas de validacao incorretas!")
+        return False
+    return redefinir_senha(nome, nova_senha) 
 
 def redefinir_senha(nome: str, nova_senha: str) -> bool:
     nome_normalizado = nome.strip().casefold()
@@ -85,4 +114,4 @@ def redefinir_senha(nome: str, nova_senha: str) -> bool:
 
 
 
-__all__ = ['criar_usuario', 'verificar_login', 'verificar_usuario', 'gerar_hash', 'redefinir_senha']
+__all__ = ['criar_usuario', 'verificar_login', 'verificar_usuario', 'gerar_hash', 'redefinir_senha','redefinir_senha_com_validacao']
