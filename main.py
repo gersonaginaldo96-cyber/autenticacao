@@ -1,4 +1,4 @@
-from autenticacao.auth import criar_usuario, verificar_login,redefinir_senha
+from autenticacao.auth import criar_usuario, verificar_login, resposta_da_pergunta_de_validacao, redefinir_senha_com_validacao
 
 
 def main() -> None:
@@ -24,27 +24,32 @@ def main() -> None:
                 print(f'Login realizado com sucesso! Bem-vindo(a), {nome.strip().casefold()}')
             else:
                 print('Nome ou senha incorretos.')
-
-        elif opcao == '3':
-            nome = input('Digite o nome: ')
-            nova_senha = input('Digite a nova senha: ')
-            redefinir_senha(nome, nova_senha)
-
-        elif opcao == '4':
-            tentativas = 3
-            while tentativas != 0:
-                nome = input('Digite o nome para sair: ')
-                senha = input('Digite a senha para sair: ')
                 
-                if verificar_login(nome, senha):
-                    print('Saindo do sistema...')
-                    return
-                else:
-                    tentativas -= 1
-                    print(f'Senha incorreta. Tentativas restantes: {tentativas}')
-            print('Número máximo de tentativas atingido. Saindo do sistema...')
-        else:
-            print('Opção inválida.')
+     
+        elif opcao == '3':
+            nome = input("digita o seu nome: ")
+            pergunta = resposta_da_pergunta_de_validacao(nome)
+
+            if pergunta is None:
+                print("O Usuario nao foi encontrado")
+                continue
+            print(f"pergunta de validacao : {pergunta}")
+            resposta = input('Resposta: ')
+            nova_senha = input("Digita a nova senha: ")
+
+            if redefinir_senha_com_validacao(
+                nome,
+                pergunta,
+                resposta,
+                nova_senha
+             ):
+                print('senha redefinida com sucesso')
+            break
+                
+        elif opcao == '4':
+            print("saindo do sistema")
+            break
+        
 
 
 if __name__ == '__main__':

@@ -2,7 +2,6 @@ from hashlib import sha256
 import random
 from datetime import datetime
 
-
 from models.database import conectar_db
 
 # gerar o hash usando o bcyrpt junto
@@ -65,7 +64,7 @@ def verificar_usuario(nome: str) -> bool:
 def gerar_senha_temp():
     return str(random.randint(10000,999999))# 6 digitos
 
-# criar questoes de validacao para poder passar para redifinicao
+# tratar questoes de validacao para poder passar para redifinicao
 def pergunta_de_validacao(nome:str, pergunta:str, resposta: str) -> bool:
     nome_normalizado = nome.strip().casefold()
     pergunta_normalizada = pergunta.strip().casefold()
@@ -74,7 +73,11 @@ def pergunta_de_validacao(nome:str, pergunta:str, resposta: str) -> bool:
     conn = conectar_db()
     cursor = conn.cursor()
 
-    cursor.execute ('SELECT pergunta_de_validacao, resposta_de_validacao  FROM usuarios WHERE nome = ?', (nome_normalizado,))
+    cursor.execute(
+        'SELECT pergunta_de_validacao, resposta_da_pergunta_de_validacao '
+        'FROM usuarios WHERE nome = ?',
+        (nome_normalizado,)
+    )
     resultado = cursor.fetchone()
     conn.close()
 
@@ -82,6 +85,20 @@ def pergunta_de_validacao(nome:str, pergunta:str, resposta: str) -> bool:
         return False
     pergunta_salva, resposta_salva = resultado
     return (pergunta_salva.strip().casefold() == pergunta_normalizada and resposta_salva.strip().casefold() == resposta_normalizada)
+
+def resposta_da_pergunta_de_validacao(nome: str,) ->str | None:
+    nome_normalizado = nome.strip().casefold()
+
+    conn = conectar_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        'SELECT pergunta_de_validacao FROM usuarios WHERE nome = ?',(nome_normalizado,)
+
+    )
+    resultado = cursor.fetchone()
+    conn.close
+    return resultado[0] if resultado else None
+
 
 # redefinir senha atravez da validacao das informacoes
 def redefinir_senha_com_validacao(nome: str, pergunta: str, resposta: str, nova_senha: str) -> bool:
@@ -114,4 +131,4 @@ def redefinir_senha(nome: str, nova_senha: str) -> bool:
 
 
 
-__all__ = ['criar_usuario', 'verificar_login', 'verificar_usuario', 'gerar_hash', 'redefinir_senha','redefinir_senha_com_validacao']
+__all__ = ['criar_usuario', 'verificar_login', 'verificar_usuario', 'gerar_hash', 'redefinir_senha','redefinir_senha_com_validacao','resposta_da_pergunta_de_validacao']
