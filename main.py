@@ -14,7 +14,9 @@ def main() -> None:
         if opcao == '1':
             nome = input('Digite o nome: ')
             senha = input('Digite a senha: ')
-            criar_usuario(nome, senha)
+            pergunta = input('Digite uma pergunta de validação: ')
+            resposta = input('Digite a resposta de validação: ')
+            criar_usuario(nome, senha, pergunta, resposta)
 
         elif opcao == '2':
             nome = input('Digite o nome: ')

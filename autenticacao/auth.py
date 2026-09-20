@@ -9,7 +9,12 @@ def gerar_hash(senha: str) -> str:
     return sha256(senha.encode('utf-8')).hexdigest()
 
 
-def criar_usuario(nome: str, senha: str) -> bool:
+def criar_usuario(
+    nome: str,
+    senha: str,
+    pergunta: str | None = None,
+    resposta: str | None = None,
+) -> bool:
     nome_normalizado = nome.strip().casefold()
 
     if not nome_normalizado or not senha:
@@ -25,8 +30,18 @@ def criar_usuario(nome: str, senha: str) -> bool:
         return False
 
     cursor.execute(
-        'INSERT INTO usuarios (nome, senha) VALUES (?, ?)',
-        (nome_normalizado, gerar_hash(senha))
+        '''
+        INSERT INTO usuarios (
+            nome, senha, pergunta_de_validacao,
+            resposta_da_pergunta_de_validacao
+        ) VALUES (?, ?, ?, ?)
+        ''',
+        (
+            nome_normalizado,
+            gerar_hash(senha),
+            pergunta.strip() if pergunta else None,
+            resposta.strip() if resposta else None,
+        )
     )
     conn.commit()
     conn.close()
@@ -85,6 +100,7 @@ def pergunta_de_validacao(nome:str, pergunta:str, resposta: str) -> bool:
         return False
     pergunta_salva, resposta_salva = resultado
     return (pergunta_salva.strip().casefold() == pergunta_normalizada and resposta_salva.strip().casefold() == resposta_normalizada)
+
 
 def resposta_da_pergunta_de_validacao(nome: str,) ->str | None:
     nome_normalizado = nome.strip().casefold()

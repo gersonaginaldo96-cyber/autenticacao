@@ -5,7 +5,9 @@ Projeto simples em Python para cadastro e autenticação de usuários com SQLite
 ## Funcionalidades
 - Cadastro de usuários
 - Login com validação de senha
+- bloquear o nome ou user apos atingir o limite de tentativas
 - Redefinição de senha
+- adicionar um bloqueio para limite de tentativas de redifinicao
 - Testes automatizados com pytest
 
 ## Estrutura
