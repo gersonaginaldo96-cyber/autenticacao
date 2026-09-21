@@ -153,6 +153,35 @@ def test_redefinir_senha_com_validacao_rejeita_resposta_incorreta(
     assert verificar_login('Maria', 'senha antiga') is True
 
 
+def test_redefinicao_bloqueia_apos_tres_tentativas_incorretas(banco_temporario):
+    adicionar_usuario_com_validacao(
+        'Maria', 'senha antiga', 'Qual sua cidade?', 'Lisboa'
+    )
+
+    for _ in range(3):
+        assert redefinir_senha_com_validacao(
+            'Maria', 'Qual sua cidade?', 'Resposta errada', 'senha nova'
+        ) is False
+
+    assert redefinir_senha_com_validacao(
+        'Maria', 'Qual sua cidade?', 'Lisboa', 'senha nova'
+    ) is False
+    assert verificar_login('Maria', 'senha antiga') is True
+
+
+def test_redefinicao_limpa_tentativas_apos_resposta_correta(banco_temporario):
+    adicionar_usuario_com_validacao(
+        'Maria', 'senha antiga', 'Qual sua cidade?', 'Lisboa'
+    )
+
+    assert redefinir_senha_com_validacao(
+        'Maria', 'Qual sua cidade?', 'Resposta errada', 'senha nova'
+    ) is False
+    assert redefinir_senha_com_validacao(
+        'Maria', 'Qual sua cidade?', 'Lisboa', 'senha nova'
+    ) is True
+
+
 def test_main_sai_pela_opcao_quatro(monkeypatch, capsys):
     monkeypatch.setattr('builtins.input', lambda _: '4')
 

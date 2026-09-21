@@ -23,10 +23,17 @@ def conectar_db():
             nome TEXT PRIMARY KEY,
             tempo_hash TEXT,
             criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            tentativas integer
-           
+            tentativas INTEGER NOT NULL DEFAULT 0,
+            bloqueado_ate TEXT
         )
         '''
     )
+
+    colunas = {
+        row[1] for row in conn.execute('PRAGMA table_info(redefinir_pin)')
+    }
+    if 'bloqueado_ate' not in colunas:
+        conn.execute('ALTER TABLE redefinir_pin ADD COLUMN bloqueado_ate TEXT')
+
     conn.commit()
     return conn

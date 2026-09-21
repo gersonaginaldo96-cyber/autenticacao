@@ -1,8 +1,11 @@
 from hashlib import sha256
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from models.database import conectar_db
+
+LIMITE_TENTATIVAS = 3
+TEMPO_BLOQUEIO = timedelta(minutes=5)
 
 # gerar o hash usando o bcyrpt junto
 def gerar_hash(senha: str) -> str:
@@ -26,7 +29,7 @@ def criar_usuario(
 
     if cursor.execute('SELECT 1 FROM usuarios WHERE nome = ?', (nome_normalizado,)).fetchone():
         print('Usuário já existe.')
-        conn.close()
+        conn.close
         return False
 
     cursor.execute(
@@ -75,7 +78,8 @@ def verificar_usuario(nome: str) -> bool:
     conn.close()
 
     return resultado is not None
-# redefinicao de senha colocar um limite de tentativas (rate limite e bcrypt)
+
+# gerar senha temporaria
 def gerar_senha_temp():
     return str(random.randint(10000,999999))# 6 digitos
 
@@ -101,7 +105,7 @@ def pergunta_de_validacao(nome:str, pergunta:str, resposta: str) -> bool:
     pergunta_salva, resposta_salva = resultado
     return (pergunta_salva.strip().casefold() == pergunta_normalizada and resposta_salva.strip().casefold() == resposta_normalizada)
 
-
+# respostas da pergunta de validacao
 def resposta_da_pergunta_de_validacao(nome: str,) ->str | None:
     nome_normalizado = nome.strip().casefold()
 
@@ -112,15 +116,85 @@ def resposta_da_pergunta_de_validacao(nome: str,) ->str | None:
 
     )
     resultado = cursor.fetchone()
-    conn.close
+    conn.close()
     return resultado[0] if resultado else None
 
 
-# redefinir senha atravez da validacao das informacoes
+def redefinicao_bloqueada(nome: str) -> bool:
+    conn = conectar_db()
+    resultado = conn.execute(
+        'SELECT bloqueado_ate FROM redefinir_pin WHERE nome = ?',
+        (nome,)
+    ).fetchone()
+
+    if not resultado or not resultado[0]:
+        conn.close()
+        return False
+
+    bloqueado_ate = datetime.fromisoformat(resultado[0])
+    if datetime.now() < bloqueado_ate:
+        conn.close()
+        return True
+
+    conn.execute(
+        'UPDATE redefinir_pin SET tentativas = 0, bloqueado_ate = NULL WHERE nome = ?',
+        (nome,)
+    )
+    conn.commit()
+    conn.close()
+    return False
+
+
+def registrar_tentativa_incorreta(nome: str) -> None:
+    conn = conectar_db()
+    resultado = conn.execute(
+        'SELECT tentativas FROM redefinir_pin WHERE nome = ?',
+        (nome,)
+    ).fetchone()
+    tentativas = (resultado[0] if resultado else 0) + 1
+    bloqueado_ate = None
+
+    if tentativas >= LIMITE_TENTATIVAS:
+        bloqueado_ate = (datetime.now() + TEMPO_BLOQUEIO).isoformat()
+
+    conn.execute(
+        '''
+        INSERT INTO redefinir_pin (nome, tentativas, bloqueado_ate)
+        VALUES (?, ?, ?)
+        ON CONFLICT(nome) DO UPDATE SET
+            tentativas = excluded.tentativas,
+            bloqueado_ate = excluded.bloqueado_ate
+        ''',
+        (nome, tentativas, bloqueado_ate),
+    )
+    conn.commit()
+    conn.close()
+
+
+def limpar_tentativas(nome: str) -> None:
+    conn = conectar_db()
+    conn.execute(
+        'DELETE FROM redefinir_pin WHERE nome = ?',
+        (nome,)
+    )
+    conn.commit()
+    conn.close()
+
+
+# redefinir senha atravez da validacao das informacoes e bloquear apos 3 tentativas 
 def redefinir_senha_com_validacao(nome: str, pergunta: str, resposta: str, nova_senha: str) -> bool:
+    nome_normalizado = nome.strip().casefold()
+
+    if redefinicao_bloqueada(nome_normalizado):
+        print('Muitas tentativas. Tente novamente mais tarde.')
+        return False
+
     if not pergunta_de_validacao(nome, pergunta, resposta):
+        registrar_tentativa_incorreta(nome_normalizado)
         print("pergunta ou respostas de validacao incorretas!")
         return False
+
+    limpar_tentativas(nome_normalizado)
     return redefinir_senha(nome, nova_senha) 
 
 def redefinir_senha(nome: str, nova_senha: str) -> bool:
