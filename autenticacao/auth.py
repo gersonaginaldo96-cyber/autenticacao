@@ -23,16 +23,19 @@ def criar_usuario(
     if not nome_normalizado or not senha:
         print('Nome e senha são obrigatórios.')
         return False
+    
 
     conn = conectar_db()
     cursor = conn.cursor()
 
-    if cursor.execute('SELECT 1 FROM usuarios WHERE nome = ?', (nome_normalizado,)).fetchone():
-        print('Usuário já existe.')
-        conn.close
-        return False
-
-    cursor.execute(
+    try:
+        resultado = cursor.execute('SELECT 1 FROM usuarios WHERE nome = ?', (nome_normalizado,)).fetchone()
+        if resultado:
+            print('usuario ja existente.')
+            return False
+    
+        
+        cursor.execute(
         '''
         INSERT INTO usuarios (
             nome, senha, pergunta_de_validacao,
@@ -45,39 +48,51 @@ def criar_usuario(
             pergunta.strip() if pergunta else None,
             resposta.strip() if resposta else None,
         )
-    )
-    conn.commit()
-    conn.close()
-    print(f'Usuário {nome_normalizado} cadastrado com sucesso!')
-    return True
+        )
+        conn.commit()
+        print(f'Usuário {nome_normalizado} cadastrado com sucesso!')
+        return True
+    
+    except Exception as erro:
+        conn.rollback()
+        print(f"erro de credenciais: {erro}")
+        return False
+    finally:
+        conn.close()
 
 # verificar login
-def verificar_login(nome: str, senha: str) -> bool:
+def verificar_login(
+        nome: str,
+        senha: str
+        )-> bool:
     nome_normalizado = nome.strip().casefold()
-
-    conn = conectar_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT senha FROM usuarios WHERE nome = ?', (nome_normalizado,))
-    resultado = cursor.fetchone()
-    conn.close()
-
-    if not resultado:
+    conn = conectar_db
+    try:
+        resultado = conn.execute('SELECT senha FROM usuarios WHERE nome = ?', (nome_normalizado,)).fetchone()
+        return  resultado is not None
+    except Exception as erro:
+        print(f'erro de credeciais: {erro}')
         return False
-
-    senha_armazenada = resultado[0]
-    return senha_armazenada == gerar_hash(senha)
+    finally:
+        senha_armazenada = resultado[0]
+        return senha_armazenada == gerar_hash(senha)
 
 # verificar se o usuário existe
 def verificar_usuario(nome: str) -> bool:
     nome_normalizado = nome.strip().casefold()
-
     conn = conectar_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT 1 FROM usuarios WHERE nome = ?', (nome_normalizado,))
-    resultado = cursor.fetchone()
-    conn.close()
 
-    return resultado is not None
+    try:
+        resultado = conn.execute(
+            'SELECT 1 FROM usuarios WHERE nome = ?',
+            (nome_normalizado,)
+        ).fetchone()
+        return resultado is not None
+    except Exception as erro:
+        print(f'Erro ao verificar usuário: {erro}')
+        return False
+    finally:
+        conn.close()
 
 # gerar senha temporaria
 def gerar_senha_temp():
