@@ -1,6 +1,8 @@
 from hashlib import sha256
 import random
 from datetime import datetime, timedelta
+import secrets
+import bcrypt
 
 from models.database import conectar_db
 
@@ -9,7 +11,7 @@ TEMPO_BLOQUEIO = timedelta(minutes=5)
 
 # gerar o hash usando o bcyrpt junto
 def gerar_hash(senha: str) -> str:
-    return sha256(senha.encode('utf-8')).hexdigest()
+    return bcrypt.hashpw(senha.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
 
 
 def criar_usuario(
@@ -66,16 +68,23 @@ def verificar_login(
         senha: str
         )-> bool:
     nome_normalizado = nome.strip().casefold()
-    conn = conectar_db
+    conn = conectar_db()
+
     try:
-        resultado = conn.execute('SELECT senha FROM usuarios WHERE nome = ?', (nome_normalizado,)).fetchone()
-        return  resultado is not None
-    except Exception as erro:
-        print(f'erro de credeciais: {erro}')
-        return False
+        resultado = conn.execute(
+            'SELECT senha FROM usuarios WHERE nome = ?',
+            (nome_normalizado,)
+        ).fetchone()
+
+        if not resultado:
+            return False
+
+        return  bcrypt.checkpw(
+            senha.encode('utf-8'),
+            resultado[0].encode('utf-8'))
+    
     finally:
-        senha_armazenada = resultado[0]
-        return senha_armazenada == gerar_hash(senha)
+        conn.close()
 
 # verificar se o usuário existe
 def verificar_usuario(nome: str) -> bool:
@@ -87,16 +96,18 @@ def verificar_usuario(nome: str) -> bool:
             'SELECT 1 FROM usuarios WHERE nome = ?',
             (nome_normalizado,)
         ).fetchone()
-        return resultado is not None
-    except Exception as erro:
-        print(f'Erro ao verificar usuário: {erro}')
-        return False
+
+        if not resultado:
+            return False
+
+        return True
     finally:
         conn.close()
 
 # gerar senha temporaria
-def gerar_senha_temp():
-    return str(random.randint(10000,999999))# 6 digitos
+def gerar_senha_temp() -> str:
+    return str(secrets.randbelow(900_000) + 100_000)
+
 
 # tratar questoes de validacao para poder passar para redifinicao
 def pergunta_de_validacao(nome:str, pergunta:str, resposta: str) -> bool:
@@ -128,12 +139,10 @@ def resposta_da_pergunta_de_validacao(nome: str,) ->str | None:
     cursor = conn.cursor()
     cursor.execute(
         'SELECT pergunta_de_validacao FROM usuarios WHERE nome = ?',(nome_normalizado,)
-
     )
     resultado = cursor.fetchone()
     conn.close()
     return resultado[0] if resultado else None
-
 
 def redefinicao_bloqueada(nome: str) -> bool:
     conn = conectar_db()
