@@ -6,12 +6,14 @@ from autenticacao.auth import (
     criar_usuario,
     gerar_hash,
     gerar_senha_temp,
-    pergunta_de_validacao,
     redefinir_senha,
-    redefinir_senha_com_validacao,
-    resposta_da_pergunta_de_validacao,
     verificar_login,
     verificar_usuario,
+)
+from autenticacao.validacao import (
+    pergunta_de_validacao,
+    redefinir_senha_com_validacao,
+    resposta_da_pergunta_de_validacao,
 )
 from models.database import conectar_db
 from main import main

@@ -1,4 +1,13 @@
-from autenticacao.auth import criar_usuario, verificar_login, resposta_da_pergunta_de_validacao, redefinir_senha_com_validacao
+from autenticacao.auth import (
+    criar_usuario,
+    verificar_login,
+    redefinir_senha,
+)
+from autenticacao.validacao import (
+    resposta_da_pergunta_de_validacao,
+    redefinicao_bloqueada,
+    validar_redefinicao,
+)
 
 
 def main() -> None:
@@ -30,6 +39,12 @@ def main() -> None:
      
         elif opcao == '3':
             nome = input("digita o seu nome: ")
+            nome_normalizado = nome.strip().casefold()
+
+            if redefinicao_bloqueada(nome_normalizado):
+                print('Nome bloqueado devido a excessivas tentativas.')
+                continue
+
             pergunta = resposta_da_pergunta_de_validacao(nome)
 
             if pergunta is None:
@@ -37,16 +52,14 @@ def main() -> None:
                 continue
             print(f"pergunta de validacao : {pergunta}")
             resposta = input('Resposta: ')
+
+            if not validar_redefinicao(nome, pergunta, resposta):
+                continue
+
             nova_senha = input("Digita a nova senha: ")
 
-            if redefinir_senha_com_validacao(
-                nome,
-                pergunta,
-                resposta,
-                nova_senha
-             ):
+            if redefinir_senha(nome, nova_senha):
                 print('senha redefinida com sucesso')
-            break
                 
         elif opcao == '4':
             print("saindo do sistema")
