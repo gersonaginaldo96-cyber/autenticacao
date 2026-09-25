@@ -48,7 +48,7 @@ def main() -> None:
             pergunta = resposta_da_pergunta_de_validacao(nome)
 
             if pergunta is None:
-                print("O Usuario nao foi encontrado")
+                print("nao foi possivel redefinir")
                 continue
             print(f"pergunta de validacao : {pergunta}")
             resposta = input('Resposta: ')

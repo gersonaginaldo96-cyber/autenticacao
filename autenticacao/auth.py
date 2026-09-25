@@ -1,11 +1,40 @@
+import os
 import secrets
 import bcrypt
+from cryptography.fernet import Fernet, InvalidToken
 
 from models.database import conectar_db
 
 # gerar o hash usando o bcyrpt junto
 def gerar_hash(senha: str) -> str:
     return bcrypt.hashpw(senha.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
+
+
+def verificar_hash(valor: str, hash_salvo: str) -> bool:
+    return bcrypt.checkpw(
+        valor.encode('utf-8'),
+        hash_salvo.encode('utf-8'),
+    )
+
+
+def _cifrador() -> Fernet:
+    chave = os.environ.get('AUTH_ENCRYPTION_KEY')
+    if not chave:
+        raise RuntimeError(
+            'A variável AUTH_ENCRYPTION_KEY deve conter uma chave Fernet.'
+        )
+    return Fernet(chave.encode('utf-8'))
+
+
+def criptografar_texto(texto: str) -> str:
+    return _cifrador().encrypt(texto.encode('utf-8')).decode('utf-8')
+
+
+def descriptografar_texto(texto_criptografado: str) -> str:
+    try:
+        return _cifrador().decrypt(texto_criptografado.encode('utf-8')).decode('utf-8')
+    except InvalidToken as erro:
+        raise ValueError('Não foi possível descriptografar o valor.') from erro
 
 
 def criar_usuario(
@@ -28,7 +57,7 @@ def criar_usuario(
             (nome_normalizado,)
         ).fetchone()
         if resultado:
-            print('usuario ja existente.')
+            print('sucedido.')
             return False
 
         conn.execute(
@@ -41,8 +70,8 @@ def criar_usuario(
             (
                 nome_normalizado,
                 gerar_hash(senha),
-                pergunta.strip() if pergunta else None,
-                resposta.strip() if resposta else None,
+                criptografar_texto(pergunta.strip()) if pergunta else None,
+                gerar_hash(resposta.strip().casefold()) if resposta else None,
             )
         )
         conn.commit()

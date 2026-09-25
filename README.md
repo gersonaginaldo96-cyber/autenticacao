@@ -2,7 +2,8 @@
 
 Sistema de autenticação desenvolvido em Python para cadastro de usuários,
 login e redefinição de senha. Os dados são armazenados localmente em um banco
-SQLite e as senhas são protegidas com `bcrypt`.
+SQLite. As senhas e respostas são protegidas com `bcrypt`, e as perguntas são
+criptografadas com Fernet.
 
 Este projeto tem finalidade de estudo e demonstra conceitos de organização de
 módulos, persistência de dados, hash de senhas, validação de recuperação e
@@ -29,6 +30,7 @@ testes automatizados.
 
 - Python 3.10 ou superior.
 - `bcrypt` para geração e verificação dos hashes.
+- `cryptography` para criptografia Fernet das perguntas de validação.
 - `pytest` para executar os testes.
 
 O projeto usa apenas SQLite da biblioteca padrão, portanto não é necessário
@@ -57,8 +59,18 @@ source .venv/bin/activate
 Instale as dependências:
 
 ```bash
-python -m pip install bcrypt pytest
+python -m pip install -r requirements.txt
 ```
+
+Antes de executar o sistema, defina uma chave Fernet e mantenha-a fora do
+código e do banco de dados. No PowerShell:
+
+```powershell
+$env:AUTH_ENCRYPTION_KEY = (python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+```
+
+Use sempre a mesma chave nas execuções seguintes; sem ela, as perguntas
+armazenadas não poderão ser descriptografadas.
 
 ## Como executar
 
@@ -92,8 +104,10 @@ Na opção 1, informe:
 3. Pergunta de validação.
 4. Resposta de validação.
 
-O nome é convertido para uma forma normalizada antes de ser salvo. A senha é
-transformada em um hash `bcrypt`; o texto original não é armazenado.
+O nome é convertido para uma forma normalizada antes de ser salvo. A senha e a
+resposta são transformadas em hashes `bcrypt`; os textos originais não são
+armazenados. A pergunta é criptografada com Fernet porque precisa ser
+recuperada para exibição.
 
 ### Login
 

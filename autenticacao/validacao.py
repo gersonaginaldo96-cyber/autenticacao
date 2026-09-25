@@ -1,12 +1,16 @@
 from datetime import datetime, timedelta
 
 from models.database import conectar_db
-from autenticacao.auth import redefinir_senha
+from autenticacao.auth import (
+    descriptografar_texto,
+    redefinir_senha,
+    verificar_hash,
+)
 
 LIMITE_TENTATIVAS = 3
 TEMPO_BLOQUEIO = timedelta(minutes=5)
 
-
+# bloquear a tentativa de log in apos 
 def pergunta_de_validacao(nome: str, pergunta: str, resposta: str) -> bool:
     nome_normalizado = nome.strip().casefold()
     pergunta_normalizada = pergunta.strip().casefold()
@@ -25,9 +29,17 @@ def pergunta_de_validacao(nome: str, pergunta: str, resposta: str) -> bool:
             return False
 
         pergunta_salva, resposta_salva = resultado
+        if not pergunta_salva or not resposta_salva:
+            return False
+
+        try:
+            pergunta_descriptografada = descriptografar_texto(pergunta_salva)
+        except (RuntimeError, ValueError):
+            return False
+
         return (
-            pergunta_salva.strip().casefold() == pergunta_normalizada
-            and resposta_salva.strip().casefold() == resposta_normalizada
+            pergunta_descriptografada.strip().casefold() == pergunta_normalizada
+            and verificar_hash(resposta_normalizada, resposta_salva)
         )
     finally:
         conn.close()
@@ -42,7 +54,13 @@ def resposta_da_pergunta_de_validacao(nome: str) -> str | None:
             'SELECT pergunta_de_validacao FROM usuarios WHERE nome = ?',
             (nome_normalizado,)
         ).fetchone()
-        return resultado[0] if resultado else None
+        if not resultado or not resultado[0]:
+            return None
+
+        try:
+            return descriptografar_texto(resultado[0])
+        except (RuntimeError, ValueError):
+            return None
     finally:
         conn.close()
 
