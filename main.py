@@ -11,6 +11,7 @@ from autenticacao.validacao import (
 
 
 def main() -> None:
+    """Executa o loop principal do menu de interação com o usuário."""
     print('=== Sistema de Login ===')
 
     while True:
@@ -35,8 +36,7 @@ def main() -> None:
                 print(f'Login realizado com sucesso! Bem-vindo(a), {nome.strip().casefold()}')
             else:
                 print('Nome ou senha incorretos.')
-                
-     
+
         elif opcao == '3':
             nome = input("digita o seu nome: ")
             nome_normalizado = nome.strip().casefold()
@@ -60,11 +60,10 @@ def main() -> None:
 
             if redefinir_senha(nome, nova_senha):
                 print('senha redefinida com sucesso')
-                
+
         elif opcao == '4':
             print("saindo do sistema")
             break
-        
 
 
 if __name__ == '__main__':

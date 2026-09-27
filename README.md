@@ -150,6 +150,24 @@ escolher a opção 4, o programa encerra; as demais operações retornam ao menu
 	└── database.py
 ```
 
+### Fluxo de execução e regras de negócio
+
+O sistema é organizado em camadas simples:
+
+- `main.py` coordena o menu de console e a interação com o usuário.
+- `autenticacao/auth.py` cuida da criação, validação e alteração de credenciais.
+- `autenticacao/validacao.py` gerencia a pergunta secreta, as tentativas e o bloqueio temporário.
+- `models/database.py` garante a conexão SQLite e a criação das tabelas.
+
+O fluxo padrão de cadastro e login funciona assim:
+
+1. O usuário informa nome, senha, pergunta e resposta no menu.
+2. O nome é normalizado com `strip()` e `casefold()` antes de ser salvo.
+3. A senha e a resposta são armazenadas como hash `bcrypt`.
+4. A pergunta de validação é criptografada com Fernet.
+5. O login verifica a senha com `bcrypt.checkpw()` e não expõe o valor em texto puro.
+6. A recuperação de senha exige a pergunta e a resposta corretas e pode bloquear o usuário por 5 minutos após 3 falhas.
+
 ### `main.py`
 
 Contém o menu interativo e coordena as entradas do usuário. A regra de

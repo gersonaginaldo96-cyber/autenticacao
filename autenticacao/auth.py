@@ -5,12 +5,14 @@ from cryptography.fernet import Fernet, InvalidToken
 
 from models.database import conectar_db
 
-# gerar o hash usando o bcyrpt junto
+
 def gerar_hash(senha: str) -> str:
-    return bcrypt.hashpw(senha.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
+    """Gera um hash seguro de uma senha usando bcrypt com salt aleatório."""
+    return bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 
 def verificar_hash(valor: str, hash_salvo: str) -> bool:
+    """Compara um valor em texto puro com um hash bcrypt previamente salvo."""
     return bcrypt.checkpw(
         valor.encode('utf-8'),
         hash_salvo.encode('utf-8'),
@@ -18,6 +20,7 @@ def verificar_hash(valor: str, hash_salvo: str) -> bool:
 
 
 def _cifrador() -> Fernet:
+    """Retorna uma instância de Fernet a partir da variável de ambiente."""
     chave = os.environ.get('AUTH_ENCRYPTION_KEY')
     if not chave:
         raise RuntimeError(

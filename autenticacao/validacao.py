@@ -1,3 +1,10 @@
+"""Fluxo de validação da pergunta secreta e controle de bloqueio por tentativas.
+
+Este módulo garante que a recuperação de senha só ocorra quando a pergunta e a
+resposta fornecidas pelo usuário conferem com o registro salvo. Também controla
+um bloqueio temporário após várias tentativas incorretas.
+"""
+
 from datetime import datetime, timedelta
 
 from models.database import conectar_db
@@ -10,8 +17,9 @@ from autenticacao.auth import (
 LIMITE_TENTATIVAS = 3
 TEMPO_BLOQUEIO = timedelta(minutes=5)
 
-# bloquear a tentativa de log in apos 
+
 def pergunta_de_validacao(nome: str, pergunta: str, resposta: str) -> bool:
+    """Valida se a pergunta e a resposta informadas correspondem ao cadastro."""
     nome_normalizado = nome.strip().casefold()
     pergunta_normalizada = pergunta.strip().casefold()
     resposta_normalizada = resposta.strip().casefold()
@@ -46,6 +54,7 @@ def pergunta_de_validacao(nome: str, pergunta: str, resposta: str) -> bool:
 
 
 def resposta_da_pergunta_de_validacao(nome: str) -> str | None:
+    """Busca a pergunta gravada para um usuário e a retorna em texto legível."""
     nome_normalizado = nome.strip().casefold()
 
     conn = conectar_db()
@@ -66,6 +75,7 @@ def resposta_da_pergunta_de_validacao(nome: str) -> str | None:
 
 
 def redefinicao_bloqueada(nome: str) -> bool:
+    """Verifica se o nome está bloqueado e libera o acesso quando o prazo expira."""
     conn = conectar_db()
     try:
         resultado = conn.execute(
@@ -91,6 +101,7 @@ def redefinicao_bloqueada(nome: str) -> bool:
 
 
 def registrar_tentativa_incorreta(nome: str) -> None:
+    """Incrementa o contador de falhas e bloqueia temporariamente após o limite."""
     conn = conectar_db()
     try:
         resultado = conn.execute(
@@ -119,6 +130,7 @@ def registrar_tentativa_incorreta(nome: str) -> None:
 
 
 def limpar_tentativas(nome: str) -> None:
+    """Remove o registro de bloqueio e tentativas do usuário após sucesso."""
     conn = conectar_db()
     try:
         conn.execute(
@@ -131,6 +143,7 @@ def limpar_tentativas(nome: str) -> None:
 
 
 def validar_redefinicao(nome: str, pergunta: str, resposta: str) -> bool:
+    """Executa todo o fluxo de validação de recuperação de senha."""
     nome_normalizado = nome.strip().casefold()
 
     if redefinicao_bloqueada(nome_normalizado):
@@ -151,6 +164,7 @@ def redefinir_senha_com_validacao(
     resposta: str,
     nova_senha: str,
 ) -> bool:
+    """Valida a recuperação e, em seguida, altera a senha do usuário."""
     nome_normalizado = nome.strip().casefold()
 
     if not validar_redefinicao(nome, pergunta, resposta):

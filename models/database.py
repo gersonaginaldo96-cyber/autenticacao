@@ -1,3 +1,5 @@
+"""Configuração e acesso ao banco SQLite do sistema."""
+
 import sqlite3
 
 
@@ -15,7 +17,6 @@ def conectar_db():
             ultima_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         '''
-        
     )
     conn.execute(
         '''
