@@ -156,8 +156,10 @@ def validar_redefinicao(nome: str, pergunta: str, resposta: str) -> bool:
         return False
 
     return True
+#regras da senha
 
-
+        
+    
 def redefinir_senha_com_validacao(
     nome: str,
     pergunta: str,

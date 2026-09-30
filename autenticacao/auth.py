@@ -17,6 +17,14 @@ def verificar_hash(valor: str, hash_salvo: str) -> bool:
         valor.encode('utf-8'),
         hash_salvo.encode('utf-8'),
     )
+def validar_senha(senha: str) -> tuple[bool, str]:
+        especiais = "@#$%^&*!><:"
+
+        if len(senha) < 8:
+            return False, "A senha deve conter pelo meno 8 caracteres"
+        if not any(caractere in especiais for caractere in senha):
+            return False, 'A senha deve conter caracteres especiais'
+        return True, 'Senha valida'
 
 
 def _cifrador() -> Fernet:
@@ -51,7 +59,6 @@ def criar_usuario(
     if not nome_normalizado or not senha:
         print('Nome e senha são obrigatórios.')
         return False
-
     conn = conectar_db()
 
     try:
@@ -59,8 +66,13 @@ def criar_usuario(
             'SELECT 1 FROM usuarios WHERE nome = ?',
             (nome_normalizado,)
         ).fetchone()
+
         if resultado:
             print('sucedido.')
+            return False
+        valida,mensagem = validar_senha(senha)
+        if not valida:
+            print(mensagem)
             return False
 
         conn.execute(
