@@ -1,12 +1,12 @@
 from autenticacao.auth import (
     criar_usuario,
+    validar_senha,
     verificar_login,
-    redefinir_senha,
 )
 from autenticacao.validacao import (
-    resposta_da_pergunta_de_validacao,
     redefinicao_bloqueada,
-    validar_redefinicao,
+    redefinir_senha_com_codigo,
+    solicitar_codigo_temporario,
 )
 
 
@@ -24,9 +24,12 @@ def main() -> None:
         if opcao == '1':
             nome = input('Digite o nome: ')
             senha = input('Digite a senha: ')
-            pergunta = input('Digite uma pergunta de validação: ')
-            resposta = input('Digite a resposta de validação: ')
-            criar_usuario(nome, senha, pergunta, resposta)
+            senha_valida, mensagem = validar_senha(senha)
+            if not senha_valida:
+                print(mensagem)
+                continue
+
+            criar_usuario(nome, senha)
 
         elif opcao == '2':
             nome = input('Digite o nome: ')
@@ -45,21 +48,16 @@ def main() -> None:
                 print('Nome bloqueado devido a excessivas tentativas.')
                 continue
 
-            pergunta = resposta_da_pergunta_de_validacao(nome)
-
-            if pergunta is None:
-                print("nao foi possivel redefinir")
+            codigo = solicitar_codigo_temporario(nome_normalizado)
+            if codigo is None:
+                print('Não foi possível gerar um código para esse usuário.')
                 continue
-            print(f"pergunta de validacao : {pergunta}")
-            resposta = input('Resposta: ')
+            print(f'Código temporário: {codigo}')
+            codigo_informado = input('Digite o código temporário: ')
+            nova_senha = input('Digite a nova senha: ')
 
-            if not validar_redefinicao(nome, pergunta, resposta):
-                continue
-
-            nova_senha = input("Digita a nova senha: ")
-
-            if redefinir_senha(nome, nova_senha):
-                print('senha redefinida com sucesso')
+            if redefinir_senha_com_codigo(nome, codigo_informado, nova_senha):
+                print('Senha redefinida com sucesso.')
 
         elif opcao == '4':
             print("saindo do sistema")

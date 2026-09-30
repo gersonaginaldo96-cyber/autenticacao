@@ -1,75 +1,114 @@
-"""Fluxo de validação da pergunta secreta e controle de bloqueio por tentativas.
-
-Este módulo garante que a recuperação de senha só ocorra quando a pergunta e a
-resposta fornecidas pelo usuário conferem com o registro salvo. Também controla
-um bloqueio temporário após várias tentativas incorretas.
-"""
+"""Fluxo de recuperação por código temporário e controle de tentativas."""
 
 from datetime import datetime, timedelta
 
-from models.database import conectar_db
 from autenticacao.auth import (
-    descriptografar_texto,
-    redefinir_senha,
+    gerar_hash,
+    gerar_senha_temp,
+    validar_senha,
     verificar_hash,
 )
+from models.database import conectar_db
 
 LIMITE_TENTATIVAS = 3
 TEMPO_BLOQUEIO = timedelta(minutes=5)
+VALIDADE_CODIGO = timedelta(minutes=10)
 
 
-def pergunta_de_validacao(nome: str, pergunta: str, resposta: str) -> bool:
-    """Valida se a pergunta e a resposta informadas correspondem ao cadastro."""
+def solicitar_codigo_temporario(nome: str) -> str | None:
+    """Gera um código para um usuário existente e o salva como hash."""
     nome_normalizado = nome.strip().casefold()
-    pergunta_normalizada = pergunta.strip().casefold()
-    resposta_normalizada = resposta.strip().casefold()
+
+    if redefinicao_bloqueada(nome_normalizado):
+        return None
 
     conn = conectar_db()
-
     try:
         resultado = conn.execute(
-            'SELECT pergunta_de_validacao, resposta_da_pergunta_de_validacao '
-            'FROM usuarios WHERE nome = ?',
+            'SELECT 1 FROM usuarios WHERE nome = ?',
+            (nome_normalizado,)
+        ).fetchone()
+
+        if not resultado:
+            return None
+
+        codigo = gerar_senha_temp()
+        conn.execute(
+            '''
+            INSERT INTO redefinir_pin (
+                nome, tempo_hash, criado_em, tentativas, bloqueado_ate
+            ) VALUES (?, ?, ?, 0, NULL)
+            ON CONFLICT(nome) DO UPDATE SET
+                tempo_hash = excluded.tempo_hash,
+                criado_em = excluded.criado_em,
+                tentativas = 0,
+                bloqueado_ate = NULL
+            ''',
+            (nome_normalizado, gerar_hash(codigo), datetime.now().isoformat()),
+        )
+        conn.commit()
+        return codigo
+    finally:
+        conn.close()
+
+
+def redefinir_senha_com_codigo(
+    nome: str,
+    codigo: str,
+    nova_senha: str,
+) -> bool:
+    """Redefine a senha se o código estiver correto, válido e não expirado."""
+    nome_normalizado = nome.strip().casefold()
+
+    senha_valida, mensagem = validar_senha(nova_senha)
+    if not senha_valida:
+        print(mensagem)
+        return False
+
+    if redefinicao_bloqueada(nome_normalizado):
+        print('Muitas tentativas. Tente novamente mais tarde.')
+        return False
+
+    conn = conectar_db()
+    try:
+        resultado = conn.execute(
+            'SELECT tempo_hash, criado_em FROM redefinir_pin WHERE nome = ?',
             (nome_normalizado,)
         ).fetchone()
 
         if not resultado:
             return False
 
-        pergunta_salva, resposta_salva = resultado
-        if not pergunta_salva or not resposta_salva:
-            return False
-
-        try:
-            pergunta_descriptografada = descriptografar_texto(pergunta_salva)
-        except (RuntimeError, ValueError):
-            return False
-
-        return (
-            pergunta_descriptografada.strip().casefold() == pergunta_normalizada
-            and verificar_hash(resposta_normalizada, resposta_salva)
-        )
+        hash_codigo, criado_em = resultado
     finally:
         conn.close()
 
+    if datetime.now() - datetime.fromisoformat(criado_em) > VALIDADE_CODIGO:
+        limpar_tentativas(nome_normalizado)
+        print('O código temporário expirou. Solicite outro código.')
+        return False
 
-def resposta_da_pergunta_de_validacao(nome: str) -> str | None:
-    """Busca a pergunta gravada para um usuário e a retorna em texto legível."""
-    nome_normalizado = nome.strip().casefold()
+    if not verificar_hash(codigo.strip(), hash_codigo):
+        registrar_tentativa_incorreta(nome_normalizado)
+        print('Código temporário incorreto.')
+        return False
 
     conn = conectar_db()
     try:
         resultado = conn.execute(
-            'SELECT pergunta_de_validacao FROM usuarios WHERE nome = ?',
-            (nome_normalizado,)
-        ).fetchone()
-        if not resultado or not resultado[0]:
-            return None
+            'UPDATE usuarios SET senha = ? WHERE nome = ?',
+            (gerar_hash(nova_senha), nome_normalizado),
+        )
+        if resultado.rowcount == 0:
+            conn.rollback()
+            return False
 
-        try:
-            return descriptografar_texto(resultado[0])
-        except (RuntimeError, ValueError):
-            return None
+        conn.execute(
+            'DELETE FROM redefinir_pin WHERE nome = ?',
+            (nome_normalizado,),
+        )
+        conn.commit()
+        return True
     finally:
         conn.close()
 
@@ -102,6 +141,7 @@ def redefinicao_bloqueada(nome: str) -> bool:
 
 def registrar_tentativa_incorreta(nome: str) -> None:
     """Incrementa o contador de falhas e bloqueia temporariamente após o limite."""
+    nome = nome.strip().casefold()
     conn = conectar_db()
     try:
         resultado = conn.execute(
@@ -131,6 +171,7 @@ def registrar_tentativa_incorreta(nome: str) -> None:
 
 def limpar_tentativas(nome: str) -> None:
     """Remove o registro de bloqueio e tentativas do usuário após sucesso."""
+    nome = nome.strip().casefold()
     conn = conectar_db()
     try:
         conn.execute(
@@ -142,46 +183,10 @@ def limpar_tentativas(nome: str) -> None:
         conn.close()
 
 
-def validar_redefinicao(nome: str, pergunta: str, resposta: str) -> bool:
-    """Executa todo o fluxo de validação de recuperação de senha."""
-    nome_normalizado = nome.strip().casefold()
-
-    if redefinicao_bloqueada(nome_normalizado):
-        print('Muitas tentativas. Tente novamente mais tarde.')
-        return False
-
-    if not pergunta_de_validacao(nome, pergunta, resposta):
-        registrar_tentativa_incorreta(nome_normalizado)
-        print('pergunta ou respostas de validacao incorretas!')
-        return False
-
-    return True
-#regras da senha
-
-        
-    
-def redefinir_senha_com_validacao(
-    nome: str,
-    pergunta: str,
-    resposta: str,
-    nova_senha: str,
-) -> bool:
-    """Valida a recuperação e, em seguida, altera a senha do usuário."""
-    nome_normalizado = nome.strip().casefold()
-
-    if not validar_redefinicao(nome, pergunta, resposta):
-        return False
-
-    limpar_tentativas(nome_normalizado)
-    return redefinir_senha(nome, nova_senha)
-
-
 __all__ = [
-    'pergunta_de_validacao',
-    'resposta_da_pergunta_de_validacao',
+    'solicitar_codigo_temporario',
+    'redefinir_senha_com_codigo',
     'redefinicao_bloqueada',
     'registrar_tentativa_incorreta',
     'limpar_tentativas',
-    'validar_redefinicao',
-    'redefinir_senha_com_validacao',
 ]

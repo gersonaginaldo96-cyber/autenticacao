@@ -1,7 +1,5 @@
-import os
 import secrets
 import bcrypt
-from cryptography.fernet import Fernet, InvalidToken
 
 from models.database import conectar_db
 
@@ -27,32 +25,9 @@ def validar_senha(senha: str) -> tuple[bool, str]:
         return True, 'Senha valida'
 
 
-def _cifrador() -> Fernet:
-    """Retorna uma instância de Fernet a partir da variável de ambiente."""
-    chave = os.environ.get('AUTH_ENCRYPTION_KEY')
-    if not chave:
-        raise RuntimeError(
-            'A variável AUTH_ENCRYPTION_KEY deve conter uma chave Fernet.'
-        )
-    return Fernet(chave.encode('utf-8'))
-
-
-def criptografar_texto(texto: str) -> str:
-    return _cifrador().encrypt(texto.encode('utf-8')).decode('utf-8')
-
-
-def descriptografar_texto(texto_criptografado: str) -> str:
-    try:
-        return _cifrador().decrypt(texto_criptografado.encode('utf-8')).decode('utf-8')
-    except InvalidToken as erro:
-        raise ValueError('Não foi possível descriptografar o valor.') from erro
-
-
 def criar_usuario(
     nome: str,
     senha: str,
-    pergunta: str | None = None,
-    resposta: str | None = None,
 ) -> bool:
     nome_normalizado = nome.strip().casefold()
 
@@ -68,7 +43,7 @@ def criar_usuario(
         ).fetchone()
 
         if resultado:
-            print('sucedido.')
+            print('nao foi possivel concluir o cadastro. verifica os dados e tente novamente.')
             return False
         valida,mensagem = validar_senha(senha)
         if not valida:
@@ -77,16 +52,11 @@ def criar_usuario(
 
         conn.execute(
             '''
-            INSERT INTO usuarios (
-                nome, senha, pergunta_de_validacao,
-                resposta_da_pergunta_de_validacao
-            ) VALUES (?, ?, ?, ?)
+            INSERT INTO usuarios (nome, senha) VALUES (?, ?)
             ''',
             (
                 nome_normalizado,
                 gerar_hash(senha),
-                criptografar_texto(pergunta.strip()) if pergunta else None,
-                gerar_hash(resposta.strip().casefold()) if resposta else None,
             )
         )
         conn.commit()
