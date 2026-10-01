@@ -6,7 +6,7 @@ import bcrypt
 from models.database import conectar_db
 
 LIMITE_TENTATIVAS_LOGIN = 3
-TEMPO_BLOQUEIO_LOGIN = timedelta(minutes=5)
+TEMPO_BLOQUEIO_LOGIN = timedelta(minutes=10)
 
 
 def gerar_hash(senha: str) -> str:
