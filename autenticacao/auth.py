@@ -16,10 +16,10 @@ def verificar_hash(valor: str, hash_salvo: str) -> bool:
         hash_salvo.encode('utf-8'),
     )
 def validar_senha(senha: str) -> tuple[bool, str]:
-        especiais = "@#$%^&*!><:"
+        especiais = "@#$%^&*!><:.ºç'«&"
 
         if len(senha) < 8:
-            return False, "A senha deve conter pelo meno 8 caracteres"
+            return False, "A senha deve conter pelo meno 8 caracteres @!#ª:;_Ç?" 
         if not any(caractere in especiais for caractere in senha):
             return False, 'A senha deve conter caracteres especiais'
         return True, 'Senha valida'
