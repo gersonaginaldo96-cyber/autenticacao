@@ -27,6 +27,15 @@ def conectar_db():
         )
         '''
     )
+    conn.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS login_bloqueios(
+            nome TEXT PRIMARY KEY,
+            tentativas INTEGER NOT NULL DEFAULT 0,
+            bloqueado_ate TEXT
+        )
+        '''
+    )
 
     colunas = {
         row[1] for row in conn.execute('PRAGMA table_info(redefinir_pin)')

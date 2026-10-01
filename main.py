@@ -1,5 +1,6 @@
 from autenticacao.auth import (
     criar_usuario,
+    login_bloqueado,
     validar_senha,
     verificar_login,
 )
@@ -37,6 +38,8 @@ def main() -> None:
 
             if verificar_login(nome, senha):
                 print(f'Login realizado com sucesso! Bem-vindo(a), {nome.strip().casefold()}')
+            elif login_bloqueado(nome):
+                print('Login bloqueado por excesso de tentativas. Tente novamente em 5 minutos.')
             else:
                 print('Nome ou senha incorretos.')
 

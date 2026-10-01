@@ -106,6 +106,15 @@ def test_verificar_login_com_senha_correta_e_incorreta(banco_temporario):
     assert verificar_login('inexistente', '123456') is False
 
 
+def test_login_bloqueia_apos_tres_senhas_incorretas(banco_temporario):
+    criar_usuario('Joao', '123456@#$%^&*":><')
+
+    for _ in range(3):
+        assert verificar_login('Joao', 'senha errada') is False
+
+    assert verificar_login('Joao', '123456@#$%^&*":><') is False
+
+
 def test_verificar_usuario(banco_temporario):
     criar_usuario('Maria', 'senha forte@#')
 

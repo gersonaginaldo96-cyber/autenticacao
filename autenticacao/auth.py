@@ -1,7 +1,12 @@
 import secrets
+from datetime import datetime, timedelta
+
 import bcrypt
 
 from models.database import conectar_db
+
+LIMITE_TENTATIVAS_LOGIN = 3
+TEMPO_BLOQUEIO_LOGIN = timedelta(minutes=5)
 
 
 def gerar_hash(senha: str) -> str:
@@ -77,6 +82,10 @@ def verificar_login(
         senha: str
         )-> bool:
     nome_normalizado = nome.strip().casefold()
+
+    if login_bloqueado(nome_normalizado):
+        return False
+
     conn = conectar_db()
 
     try:
@@ -88,10 +97,79 @@ def verificar_login(
         if not resultado:
             return False
 
-        return  bcrypt.checkpw(
+        senha_correta = bcrypt.checkpw(
             senha.encode('utf-8'),
             resultado[0].encode('utf-8'))
-    
+
+        if senha_correta:
+            limpar_tentativas_login(nome_normalizado)
+        else:
+            registrar_tentativa_login(nome_normalizado)
+        return senha_correta
+    finally:
+        conn.close()
+
+
+def login_bloqueado(nome: str) -> bool:
+    nome_normalizado = nome.strip().casefold()
+    conn = conectar_db()
+    try:
+        resultado = conn.execute(
+            'SELECT bloqueado_ate FROM login_bloqueios WHERE nome = ?',
+            (nome_normalizado,),
+        ).fetchone()
+
+        if not resultado or not resultado[0]:
+            return False
+
+        bloqueado_ate = datetime.fromisoformat(resultado[0])
+        if datetime.now() < bloqueado_ate:
+            return True
+
+        conn.execute(
+            'DELETE FROM login_bloqueios WHERE nome = ?',
+            (nome_normalizado,),
+        )
+        conn.commit()
+        return False
+    finally:
+        conn.close()
+
+
+def registrar_tentativa_login(nome: str) -> None:
+    conn = conectar_db()
+    try:
+        resultado = conn.execute(
+            'SELECT tentativas FROM login_bloqueios WHERE nome = ?',
+            (nome,),
+        ).fetchone()
+        tentativas = (resultado[0] if resultado else 0) + 1
+        bloqueado_ate = None
+        if tentativas >= LIMITE_TENTATIVAS_LOGIN:
+            bloqueado_ate = (
+                datetime.now() + TEMPO_BLOQUEIO_LOGIN
+            ).isoformat()
+
+        conn.execute(
+            '''
+            INSERT INTO login_bloqueios (nome, tentativas, bloqueado_ate)
+            VALUES (?, ?, ?)
+            ON CONFLICT(nome) DO UPDATE SET
+                tentativas = excluded.tentativas,
+                bloqueado_ate = excluded.bloqueado_ate
+            ''',
+            (nome, tentativas, bloqueado_ate),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def limpar_tentativas_login(nome: str) -> None:
+    conn = conectar_db()
+    try:
+        conn.execute('DELETE FROM login_bloqueios WHERE nome = ?', (nome,))
+        conn.commit()
     finally:
         conn.close()
 
