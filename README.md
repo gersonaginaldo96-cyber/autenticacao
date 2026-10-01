@@ -21,7 +21,7 @@ testes automatizados.
 - Redefinição de senha por código temporário de seis dígitos.
 - Expiração do código após 10 minutos e uso único após a redefinição.
 - Registro de tentativas incorretas de redefinição.
-- Bloqueio após 3 tentativas incorretas durante 5 minutos.
+- Bloqueio após 3 tentativas incorretas durante 10 minutos.
 - Verificação do bloqueio antes de gerar um código temporário.
 - Retorno ao menu após as operações; o programa só encerra pela opção 4.
 - Criação automática das tabelas do banco na primeira conexão.
