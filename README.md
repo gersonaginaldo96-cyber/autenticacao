@@ -219,6 +219,10 @@ Não edite o arquivo `usuarios.db` manualmente durante a execução. Para começ
 com uma base vazia em ambiente de desenvolvimento, encerre o programa e
 remova o arquivo; ele será recriado na próxima execução.
 
+Atualmente, esse arquivo **não é criptografado**. O hash `bcrypt` protege o
+valor original das senhas, mas não criptografa o banco inteiro nem os demais
+dados armazenados nele.
+
 ## Como executar os testes
 
 Para executar os testes:
@@ -235,19 +239,53 @@ pronto para produção.
 
 Limitações conhecidas:
 
-- O arquivo SQLite não é criptografado.
+- O arquivo SQLite é armazenado sem criptografia; quem obtiver acesso ao arquivo
+  poderá ler os dados, embora as senhas estejam armazenadas como hashes.
 - O login não possui limite de tentativas.
 - O fluxo pode revelar se um nome de usuário existe.
 - O código de recuperação é exibido no console e não é enviado por um canal independente.
 - O tratamento de exceções ainda exibe mensagens internas no cadastro.
 
-Melhorias recomendadas:
+### Proteção do arquivo do banco
+
+A criptografia do banco **ainda não está implementada**. Para uso local no
+Windows, uma primeira medida é ativar o BitLocker ou a Criptografia do
+dispositivo, quando disponíveis, e manter backups protegidos. Isso ajuda a
+proteger os arquivos quando o dispositivo está bloqueado ou é perdido, mas não
+protege o banco enquanto a aplicação está aberta e o usuário já está conectado.
+
+Se for necessário criptografar o próprio arquivo `usuarios.db`, uma opção é
+migrar para uma distribuição do SQLite com SQLCipher. Isso exige trocar o
+módulo usado para abrir o banco e configurar uma chave antes de qualquer
+consulta. O `sqlite3` padrão usado atualmente não abre um banco criptografado
+por SQLCipher.
+
+Antes de uma migração:
+
+1. Feche a aplicação e faça uma cópia de segurança do banco atual.
+2. Exporte os dados para um novo banco criptografado usando o procedimento
+	suportado pela versão do SQLCipher escolhida. Não basta configurar uma chave
+	ao abrir o arquivo atual, que está em texto claro.
+3. Guarde a chave fora do código-fonte e do banco, em um armazenamento seguro
+	apropriado ao sistema operacional. Inclua um plano seguro para disponibilizar
+	a chave aos backups.
+4. Teste o login, a recuperação de senha e a leitura dos registros no novo
+	banco antes de substituir o arquivo original.
+
+Sem a chave, os dados criptografados não podem ser recuperados. A criptografia
+do banco reduz o risco de exposição de uma cópia do arquivo, mas não substitui
+o controle de acesso ao computador, a proteção da chave nem backups seguros.
+
+### Melhorias sugeridas
 
 1. Enviar o código de recuperação por um canal independente e verificado.
 2. Implementar limitação de tentativas também no login.
 3. Usar mensagens genéricas para reduzir a descoberta de usuários.
-4. Proteger o arquivo do banco com permissões adequadas ou criptografia.
-5. Registrar eventos de segurança sem expor detalhes internos ao usuário.
+4. Ativar a criptografia do dispositivo e proteger os backups; avaliar SQLCipher
+   se for necessária criptografia específica do arquivo do banco.
+5. Proteger a chave de criptografia fora do repositório e do banco, caso SQLCipher
+   seja adotado.
+6. Registrar eventos de segurança sem expor detalhes internos ao usuário.
 
 ## Contribuição
 

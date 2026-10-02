@@ -137,11 +137,13 @@ def login_bloqueado(nome: str) -> bool:
 
 
 def registrar_tentativa_login(nome: str) -> None:
+    nome_normalizado = nome.strip().casefold()
+
     conn = conectar_db()
     try:
         resultado = conn.execute(
             'SELECT tentativas FROM login_bloqueios WHERE nome = ?',
-            (nome,),
+            (nome_normalizado,),
         ).fetchone()
         tentativas = (resultado[0] if resultado else 0) + 1
         bloqueado_ate = None
@@ -158,7 +160,7 @@ def registrar_tentativa_login(nome: str) -> None:
                 tentativas = excluded.tentativas,
                 bloqueado_ate = excluded.bloqueado_ate
             ''',
-            (nome, tentativas, bloqueado_ate),
+            (nome_normalizado, tentativas, bloqueado_ate),
         )
         conn.commit()
     finally:
@@ -166,9 +168,10 @@ def registrar_tentativa_login(nome: str) -> None:
 
 
 def limpar_tentativas_login(nome: str) -> None:
+    nome_normalizado = nome.strip().casefold()
     conn = conectar_db()
     try:
-        conn.execute('DELETE FROM login_bloqueios WHERE nome = ?', (nome,))
+        conn.execute('DELETE FROM login_bloqueios WHERE nome = ?', (nome_normalizado,))
         conn.commit()
     finally:
         conn.close()
