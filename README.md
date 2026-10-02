@@ -14,14 +14,16 @@ testes automatizados.
 - Cadastro de usuário com nome e senha.
 - Normalização do nome de usuário com `strip()` e `casefold()`.
 - Impedimento de nomes duplicados.
+- Validação de senha com pelo menos 8 caracteres e ao menos um caractere especial aceito.
 - Armazenamento da senha usando hash `bcrypt` com salt aleatório.
 - Login com comparação segura por `bcrypt.checkpw()`.
+- Bloqueio temporário do login após 3 senhas incorretas para um usuário existente.
 - Verificação da existência de um usuário.
 - Redefinição direta de senha para uso interno da aplicação.
 - Redefinição de senha por código temporário de seis dígitos.
-- Expiração do código após 10 minutos e uso único após a redefinição.
+- Expiração do código após 10 minutos e invalidação após uso bem-sucedido.
 - Registro de tentativas incorretas de redefinição.
-- Bloqueio após 3 tentativas incorretas durante 10 minutos.
+- Bloqueio da redefinição após 3 códigos incorretos por 5 minutos.
 - Verificação do bloqueio antes de gerar um código temporário.
 - Retorno ao menu após as operações; o programa só encerra pela opção 4.
 - Criação automática das tabelas do banco na primeira conexão.
@@ -95,11 +97,17 @@ Na opção 1, informe:
 O nome é convertido para uma forma normalizada antes de ser salvo. A senha é
 armazenada como hash `bcrypt`, não como texto original.
 
+A senha precisa ter pelo menos 8 caracteres e conter ao menos um caractere
+especial aceito pela validação atual: `@`, `#`, `$`, `%`, `^`, `&`, `*`, `!`,
+`>`, `<`, `:`, `.`, `º`, `ç`, `'` ou `«`. A validação atual não exige letras
+maiúsculas, minúsculas ou números.
+
 ### Login
 
 Na opção 2, informe o nome e a senha. O sistema busca o hash salvo e usa
 `bcrypt.checkpw()` para verificar a senha informada. O sistema não recupera nem
-exibe a senha original.
+exibe a senha original. Após 3 senhas incorretas para um nome de usuário
+existente, o login fica bloqueado por 10 minutos.
 
 ### Redefinição de senha
 
@@ -112,11 +120,11 @@ Na opção 3, o sistema:
 5. Compara o código informado com o hash armazenado.
 6. Remove o código após redefinir a senha com sucesso.
 
-O código expira após 10 minutos. Após três códigos incorretos, o nome fica
-bloqueado por cinco minutos. Como o código é exibido no próprio console, este
-fluxo serve para demonstração local; um sistema real deve enviá-lo por um canal
-separado e verificado. Ao escolher a opção 4, o programa encerra; as demais
-operações retornam ao menu.
+O código expira após 10 minutos. Após três códigos incorretos, a redefinição
+fica bloqueada por cinco minutos. O código é exibido no próprio console, por
+isso este fluxo serve para demonstração local; um sistema real deve enviá-lo
+por um canal separado e verificado. Ao escolher a opção 4, o programa encerra;
+as demais operações retornam ao menu.
 
 ## Estrutura do projeto
 
@@ -142,7 +150,8 @@ operações retornam ao menu.
 O sistema é organizado em camadas simples:
 
 - `main.py` coordena o menu de console e a interação com o usuário.
-- `autenticacao/auth.py` cuida da criação, validação e alteração de credenciais.
+- `autenticacao/auth.py` cuida da validação de senha, criação de contas, login,
+  bloqueio de tentativas e alteração de credenciais.
 - `autenticacao/validacao.py` gerencia o código temporário, as tentativas e o bloqueio.
 - `models/database.py` garante a conexão SQLite e a criação das tabelas.
 
@@ -150,9 +159,11 @@ O fluxo padrão de cadastro e login funciona assim:
 
 1. O usuário informa nome e senha no menu.
 2. O nome é normalizado com `strip()` e `casefold()` antes de ser salvo.
-3. A senha é armazenada como hash `bcrypt`.
-4. O login verifica a senha com `bcrypt.checkpw()` e não expõe o valor em texto puro.
-5. A recuperação gera um PIN de seis dígitos, armazena somente seu hash e bloqueia o usuário por 5 minutos após 3 falhas.
+3. A senha é validada e armazenada como hash `bcrypt`.
+4. O login verifica a senha com `bcrypt.checkpw()` e bloqueia por 10 minutos após
+	3 senhas incorretas para um usuário existente.
+5. A recuperação gera um código de seis dígitos, armazena somente seu hash,
+	expira em 10 minutos e bloqueia por 5 minutos após 3 tentativas incorretas.
 
 ### `main.py`
 
@@ -168,8 +179,12 @@ aplicação é mantida nos módulos de autenticação e validação.
 Contém as funções relacionadas à autenticação principal:
 
 - `gerar_hash(senha)`: gera um hash `bcrypt`.
+- `validar_senha(senha)`: exige pelo menos 8 caracteres e um caractere especial
+	da lista aceita pelo código.
 - `criar_usuario(nome, senha)`: cria um usuário.
 - `verificar_login(nome, senha)`: verifica as credenciais.
+- `registrar_tentativa_login(nome)`: conta falhas e aplica bloqueio temporário.
+- `login_bloqueado(nome)`: verifica e atualiza o estado do bloqueio.
 - `verificar_usuario(nome)`: verifica se o usuário existe.
 - `gerar_senha_temp()`: gera uma senha numérica temporária de seis dígitos.
 - `redefinir_senha(nome, nova_senha)`: troca a senha de um usuário existente.
@@ -187,12 +202,13 @@ Concentra a lógica de recuperação por código e controle de tentativas:
 ### `models/database.py`
 
 Contém `conectar_db()`, que abre `usuarios.db` e garante a existência das
-tabelas `usuarios` e `redefinir_pin`.
+tabelas `usuarios`, `redefinir_pin` e `login_bloqueios`.
 
 ### `test_sistema.py`
 
 Contém testes de criação do banco, cadastro, login, hash, recuperação por PIN,
-expiração do código e bloqueio após tentativas incorretas.
+normalização de nomes, redefinição de senha, expiração do código, bloqueios por
+tentativas incorretas e fluxos do menu.
 
 ## Banco de dados
 
@@ -214,6 +230,12 @@ executada. A função `conectar_db()` cria automaticamente estas tabelas:
 - `criado_em`: data de criação do registro.
 - `tentativas`: número de tentativas incorretas.
 - `bloqueado_ate`: data e hora até quando o bloqueio permanece ativo.
+
+### Tabela `login_bloqueios`
+
+- `nome`: nome normalizado associado às tentativas de login.
+- `tentativas`: número de senhas incorretas registradas.
+- `bloqueado_ate`: data e hora até quando o login permanece bloqueado.
 
 Não edite o arquivo `usuarios.db` manualmente durante a execução. Para começar
 com uma base vazia em ambiente de desenvolvimento, encerre o programa e
@@ -241,9 +263,14 @@ Limitações conhecidas:
 
 - O arquivo SQLite é armazenado sem criptografia; quem obtiver acesso ao arquivo
   poderá ler os dados, embora as senhas estejam armazenadas como hashes.
-- O login não possui limite de tentativas.
-- O fluxo pode revelar se um nome de usuário existe.
-- O código de recuperação é exibido no console e não é enviado por um canal independente.
+- A recuperação exibe o código temporário no console em vez de enviá-lo por um
+	canal independente.
+- O bloqueio do login só conta senhas incorretas quando o nome corresponde a um
+	usuário existente; isso pode permitir inferir se uma conta existe.
+- A mensagem do menu informa bloqueio de login por 5 minutos, mas a configuração
+	efetiva em `auth.py` é de 10 minutos.
+- A função interna `redefinir_senha()` não aplica a validação de senha usada no
+	cadastro e na redefinição por código.
 - O tratamento de exceções ainda exibe mensagens internas no cadastro.
 
 ### Proteção do arquivo do banco
@@ -278,14 +305,18 @@ o controle de acesso ao computador, a proteção da chave nem backups seguros.
 
 ### Melhorias sugeridas
 
-1. Enviar o código de recuperação por um canal independente e verificado.
-2. Implementar limitação de tentativas também no login.
-3. Usar mensagens genéricas para reduzir a descoberta de usuários.
-4. Ativar a criptografia do dispositivo e proteger os backups; avaliar SQLCipher
+1. Enviar o código de recuperação por um canal independente e verificado, em vez
+	de exibi-lo no console.
+2. Aplicar a mesma política de senha em todos os caminhos de alteração, incluindo
+	`redefinir_senha()`.
+3. Corrigir a mensagem de bloqueio do login para informar os 10 minutos reais e
+	revisar o controle de tentativas para reduzir a descoberta de contas.
+4. Evitar exibir detalhes internos de exceções ao usuário e registrar eventos
+	relevantes sem incluir senhas ou códigos temporários.
+5. Ativar a criptografia do dispositivo e proteger os backups; avaliar SQLCipher
    se for necessária criptografia específica do arquivo do banco.
-5. Proteger a chave de criptografia fora do repositório e do banco, caso SQLCipher
+6. Proteger a chave de criptografia fora do repositório e do banco, caso SQLCipher
    seja adotado.
-6. Registrar eventos de segurança sem expor detalhes internos ao usuário.
 
 ## Contribuição
 
