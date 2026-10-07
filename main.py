@@ -39,7 +39,7 @@ def main() -> None:
             if verificar_login(nome, senha):
                 print(f'Login realizado com sucesso! Bem-vindo(a), {nome.strip().casefold()}')
             elif login_bloqueado(nome):
-                print('Login bloqueado por excesso de tentativas. Tente novamente em 5 minutos.')
+                print('Login bloqueado por excesso de tentativas. Tente novamente em 10 minutos.')
             else:
                 print('Nome ou senha incorretos.')
 
