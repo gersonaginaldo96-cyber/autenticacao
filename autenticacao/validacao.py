@@ -59,7 +59,7 @@ def redefinir_senha_com_codigo(
 ) -> bool:
     """Redefine a senha se o código estiver correto, válido e não expirado."""
     nome_normalizado = nome.strip().casefold()
-
+    
     senha_valida, mensagem = validar_senha(nova_senha)
     if not senha_valida:
         print(mensagem)
