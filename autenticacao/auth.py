@@ -110,7 +110,7 @@ def verificar_login(
     finally:
         conn.close()
 
-
+#  bloqueio de login
 def login_bloqueado(nome: str) -> bool:
     nome_normalizado = nome.strip().casefold()
     conn = conectar_db()
@@ -166,6 +166,7 @@ def registrar_tentativa_login(nome: str) -> None:
         conn.commit()
     finally:
         conn.close()
+
 # limpar tentativas de login
 def limpar_tentativas_login(nome: str) -> None:
     nome_normalizado = nome.strip().casefold()
@@ -222,6 +223,3 @@ def redefinir_senha(nome: str, nova_senha: str) -> bool:
         return True
     finally:
         conn.close()
-
-
-
