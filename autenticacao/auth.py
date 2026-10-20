@@ -36,6 +36,7 @@ def criar_usuario(
 ) -> bool:
     nome_normalizado = nome.strip().casefold()
 
+
     if not nome_normalizado or not senha:
         print('Nome e senha são obrigatórios.')
         return False
@@ -165,8 +166,7 @@ def registrar_tentativa_login(nome: str) -> None:
         conn.commit()
     finally:
         conn.close()
-
-
+# limpar tentativas de login
 def limpar_tentativas_login(nome: str) -> None:
     nome_normalizado = nome.strip().casefold()
     conn = conectar_db()
@@ -198,7 +198,7 @@ def verificar_usuario(nome: str) -> bool:
 def gerar_senha_temp() -> str:
     return str(secrets.randbelow(900_000) + 100_000)
 
-
+# redefinicao de senha
 def redefinir_senha(nome: str, nova_senha: str) -> bool:
     nome_normalizado = nome.strip().casefold()
 

@@ -29,7 +29,6 @@ def main() -> None:
             if not senha_valida:
                 print(mensagem)
                 continue
-
             criar_usuario(nome, senha)
 
         elif opcao == '2':
