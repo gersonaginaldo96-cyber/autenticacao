@@ -37,36 +37,46 @@ def validar_senha(senha: str) -> tuple[bool, str]:
 def criar_usuario(
     nome: str,
     senha: str,
+    email: str,
 ) -> bool:
     nome_normalizado = nome.strip().casefold()
+    email_normalizado = email.strip().casefold()
 
 
-    if not nome_normalizado or not senha:
-        print('Nome e senha são obrigatórios.')
+    if not nome_normalizado or not senha or not email_normalizado:
+        print('Nome, email e senha são obrigatórios.')
         return False
     conn = conectar_db()
 
     try:
         resultado = conn.execute(
-            'SELECT 1 FROM usuarios WHERE nome = ?',
-            (nome_normalizado,)
+            'SELECT 1 FROM usuarios WHERE nome = ? AND email = ?',
+            (nome_normalizado, email_normalizado)
         ).fetchone()
 
         if resultado:
             print('nao foi possivel concluir o cadastro. verifica os dados e tente novamente.')
             return False
-        valida,mensagem = validar_senha(senha)
+        valida,mensagem = validar_senha(senha,)
         if not valida:
             print(mensagem)
             return False
+        # validar o email
+        valida_email = email_valido(email_normalizado)
+        if not valida_email:
+            print('Email invalido. Tente novamente.')
+            return False
+        
 
         conn.execute(
             '''
-            INSERT INTO usuarios (nome, senha) VALUES (?, ?)
+            INSERT INTO usuarios (nome, senha, email) VALUES (?, ?, ?)
             ''',
             (
                 nome_normalizado,
                 gerar_hash(senha),
+                gerar_hash(email_normalizado)
+                
             )
         )
         conn.commit()

@@ -11,6 +11,7 @@ def conectar_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL UNIQUE,
             senha TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
             data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             ultima_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )

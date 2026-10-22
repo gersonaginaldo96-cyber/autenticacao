@@ -25,11 +25,12 @@ def main() -> None:
         if opcao == '1':
             nome = input('Digite o nome: ')
             senha = input('Digite a senha: ')
-            senha_valida, mensagem = validar_senha(senha)
-            if not senha_valida:
+            email = input('Digite o email: ')
+            senha_valida, mensagem = validar_senha(senha,)
+            if not senha_valida or not nome.strip() or not email.strip():
                 print(mensagem)
                 continue
-            criar_usuario(nome, senha)
+            criar_usuario(nome, senha, email)
 
         elif opcao == '2':
             nome = input('Digite o nome: ')
