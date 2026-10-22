@@ -2,6 +2,10 @@ import secrets
 from datetime import datetime, timedelta
 
 import bcrypt
+import smtplib
+import re
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from models.database import conectar_db
 
@@ -195,9 +199,30 @@ def verificar_usuario(nome: str) -> bool:
     finally:
         conn.close()
 
+# configuracao do email
+seu_email = 'gersonaginaldo96@gmail.com'
+senha_email = 'mahesse@2002'
+smtp_server = 'smtp.gmail.com'
+smtp_server_port = 587
+
+# validacao de email
+def email_valido(email: str) -> bool:
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(pattern, email):
+        print("Endereço de e-mail inválido.")
+        return False
+    
+    try:
+        from email_validator import validate_email, EmailNotValidError
+        validate_email(email,check_deliverability=True)
+        return True
+    except:
+        return False
+
 # gerar senha temporaria
 def gerar_senha_temp() -> str:
     return str(secrets.randbelow(900_000) + 100_000)
+
 
 # redefinicao de senha
 def redefinir_senha(nome: str, nova_senha: str) -> bool:
