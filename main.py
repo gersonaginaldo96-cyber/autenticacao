@@ -55,7 +55,7 @@ def main() -> None:
             if codigo is None:
                 print('Não foi possível gerar um código para esse usuário.')
                 continue
-            print(f'Código temporário: {codigo}')
+            print(f'verifica na caixa do seu email e copia o codigo temporario: {nome}')
             codigo_informado = input('Digite o código temporário: ')
             nova_senha = input('Digite a nova senha: ')
 

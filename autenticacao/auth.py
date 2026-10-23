@@ -229,6 +229,25 @@ def email_valido(email: str) -> bool:
     except:
         return False
 
+# envio do email
+def enviar_email(destinatario: str, assunto: str, corpo: str) -> bool:
+    """Envia um e-mail usando o servidor SMTP configurado."""
+    msg = MIMEMultipart()
+    msg["From"] = seu_email
+    msg["To"] = destinatario
+    msg["Subject"] = assunto
+    msg.attach(MIMEText(corpo, "plain", "utf-8"))
+
+    try:
+        with smtplib.SMTP(smtp_server, smtp_server_port) as server:
+            server.starttls()
+            server.login(seu_email, senha_email)
+            server.send_message(msg)
+        return True
+    except (smtplib.SMTPException, OSError) as erro:
+        print(f"Falha ao enviar e-mail: {erro}")
+        return False
+
 # gerar senha temporaria
 def gerar_senha_temp() -> str:
     return str(secrets.randbelow(900_000) + 100_000)
