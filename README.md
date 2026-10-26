@@ -15,6 +15,7 @@ pronto para uso em produção.
   pelo código (`@`, `#`, `$`, `%`, `^`, `&`, `*`, `!`, `>`, `<`, `:`, `.`,
   `º`, `ç`, `'` ou `«`).
 - Armazenamento de senhas com `bcrypt` e comparação com `bcrypt.checkpw()`.
+- Ocultação da senha digitada no cadastro e no login com `prompt_toolkit`.
 - Bloqueio temporário de login após 3 senhas incorretas para uma conta existente
   (10 minutos).
 - Geração de código temporário de 6 dígitos para recuperação, com validade de
@@ -26,6 +27,8 @@ pronto para uso em produção.
 
 - Python 3.10 ou superior.
 - Dependências listadas em `requirements.txt` (`bcrypt` e `pytest`).
+- `prompt-toolkit`, usado para ocultar a senha durante a digitação no cadastro
+  e no login, não está listado em `requirements.txt`.
 - A validação de e-mail também importa `email-validator`, que não está listado
   em `requirements.txt`. Para habilitar o cadastro, instale-o separadamente:
 
@@ -55,11 +58,11 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-Instale as dependências e o validador de e-mail:
+Instale as dependências e os pacotes adicionais:
 
 ```bash
 python -m pip install -r requirements.txt
-python -m pip install email-validator
+python -m pip install prompt-toolkit email-validator
 ```
 
 ## Execução
@@ -79,10 +82,13 @@ Como alternativa, execute `python main.py`. O menu oferece:
 4 - Sair
 ```
 
-No cadastro, informe nome, senha e e-mail. Na recuperação pelo menu, o programa
-gera um código e pede o código e a nova senha, mas atualmente não mostra nem
-envia o código. Embora exista uma função auxiliar de envio de e-mail no módulo
-de autenticação, ela não é usada pelo fluxo atual de recuperação.
+No cadastro, informe nome, senha e e-mail. A senha do cadastro e a do login são
+solicitadas com `prompt_toolkit` e aparecem mascaradas no terminal. Na
+recuperação pelo menu, o programa gera um código e pede o código e a nova
+senha, mas atualmente não mostra nem envia o código. A senha nova desse fluxo
+ainda é solicitada sem máscara. Embora exista uma função auxiliar de envio de
+e-mail no módulo de autenticação, ela não é usada pelo fluxo atual de
+recuperação.
 
 ## Estrutura do projeto
 
@@ -104,6 +110,7 @@ de autenticação, ela não é usada pelo fluxo atual de recuperação.
 ```
 
 - `main.py`: menu interativo e coordenação das entradas do usuário.
+- `prompt-toolkit`: máscara de entrada de senha no cadastro e no login.
 - `run.py`: ponto de entrada alternativo que chama `main()`.
 - `autenticacao/auth.py`: cadastro, validação de senha, login, hashes e
   bloqueios de login.

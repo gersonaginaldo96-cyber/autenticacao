@@ -58,7 +58,7 @@ def main() -> None:
                 continue
             print(f'verifica na caixa do seu email e copia o codigo temporario: {nome}')
             codigo_informado = input('Digite o código temporário: ')
-            nova_senha = input('Digite a nova senha: ')
+            nova_senha = prompt('Digite a nova senha: ', is_password=True)
 
             if redefinir_senha_com_codigo(nome, codigo_informado, nova_senha):
                 print('Senha redefinida com sucesso.')
