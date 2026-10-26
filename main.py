@@ -9,6 +9,7 @@ from autenticacao.validacao import (
     redefinir_senha_com_codigo,
     solicitar_codigo_temporario,
 )
+from prompt_toolkit import prompt
 
 
 def main() -> None:
@@ -24,9 +25,9 @@ def main() -> None:
 
         if opcao == '1':
             nome = input('Digite o nome: ')
-            senha = input('Digite a senha: ')
+            senha = prompt('Digite a senha: ', is_password=True)
             email = input('Digite o email: ')
-            senha_valida, mensagem = validar_senha(senha,)
+            senha_valida, mensagem = validar_senha(senha)
             if not senha_valida or not nome.strip() or not email.strip():
                 print(mensagem)
                 continue
@@ -34,7 +35,7 @@ def main() -> None:
 
         elif opcao == '2':
             nome = input('Digite o nome: ')
-            senha = input('Digite a senha: ')
+            senha = prompt('Digite a senha: ', is_password=True)
 
             if verificar_login(nome, senha):
                 print(f'Login realizado com sucesso! Bem-vindo(a), {nome.strip().casefold()}')
